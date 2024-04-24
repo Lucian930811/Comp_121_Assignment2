@@ -19,7 +19,7 @@ def extract_next_links(url, resp):
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     all_links = []
 
-    if resp.status == 200:
+    if resp.status == 200 and resp.raw_response and resp.raw_response.content:
 
         parsedHTML = BeautifulSoup(resp.raw_response.content, 'html.parser')
         text_content = parsedHTML.get_text()
