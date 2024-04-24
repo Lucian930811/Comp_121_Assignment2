@@ -19,22 +19,22 @@ def extract_next_links(url, resp):
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     all_links = []
 
-    if resp.status == 200 and resp.raw_response and resp.raw_response.content:
+    if resp.status == 200 and resp.raw_response and resp.raw_response.content: #check if the status is 200 and whether there're contents inside raw_response
 
-        parsedHTML = BeautifulSoup(resp.raw_response.content, 'html.parser')
-        text_content = parsedHTML.get_text()
-        word_count = len(text_content.split())
+        parsedHTML = BeautifulSoup(resp.raw_response.content, 'html.parser') #parse the HTML
+        text_content = parsedHTML.get_text() #Get the text
+        word_count = len(text_content.split()) # See if we need to crawl the website
 
 
-        if word_count > 100:
+        if word_count > 100: # Avoid useless pages
 
             for anchor_tag in parsedHTML.find_all('a', href = True):
 
-                the_link = anchor_tag['href']
+                the_link = anchor_tag['href'] #grab relative link
 
-                joined_link = urljoin(url, the_link)
+                joined_link = urljoin(url, the_link) #Join absolute link
 
-                if 'ics.uci.edu' not in joined_link:
+                if 'ics.uci.edu' not in joined_link: #filter out links that are not in ics.uci.edu domain
                     continue
 
                 all_links.append(joined_link)
@@ -55,13 +55,13 @@ def is_valid(url):
     '.swf', '.wma', '.zip', '.rar', '.gz', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
                                '.zip', '.rar', '.mp3', '.mp4', '.avi', '.mov', '.wmv',
                                '.jpg', '.jpeg', '.png', '.gif', '.exe', '.msi', '.iso', '.bin', '.php'
-]
+] #every file formats that should be excluded
 
     try:
         parsed = urlparse(url)
-        if parsed.scheme not in set(["http", "https"]):
+        if parsed.scheme not in set(["http", "https"]): #exclude not https
             return False
-        if any(parsed.path.lower().endswith(ext) for ext in excluded_formats):
+        if any(parsed.path.lower().endswith(ext) for ext in excluded_formats): #see whether the url ends with excluded format
             return False
         
         if parsed.netloc in [
@@ -69,7 +69,7 @@ def is_valid(url):
             "www.cs.uci.edu",
             "www.informatics.uci.edu",
             "www.stat.uci.edu"
-        ]:
+        ]: #
             return True
         
         return False
