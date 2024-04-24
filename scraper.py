@@ -7,6 +7,7 @@ def scraper(url, resp):
     return [link for link in links if is_valid(link)]
 
 def extract_next_links(url, resp):
+    global last_accessed
     # Implementation required.
     # url: the URL that was used to get the page
     # resp.url: the actual url of the page
@@ -21,14 +22,22 @@ def extract_next_links(url, resp):
     if resp.status == 200:
 
         parsedHTML = BeautifulSoup(resp.raw_response.content, 'html.parser')
+        text_content = parsedHTML.get_text()
+        word_count = len(text_content.split())
 
-        for anchor_tag in parsedHTML.find_all('a', href = True):
 
-            the_link = anchor_tag['href']
+        if word_count > 100:
 
-            joined_link = urljoin(url, the_link)
+            for anchor_tag in parsedHTML.find_all('a', href = True):
 
-            all_links.append(joined_link)
+                the_link = anchor_tag['href']
+
+                joined_link = urljoin(url, the_link)
+
+                if 'ics.uci.edu' not in joined_link:
+                    continue
+
+                all_links.append(joined_link)
         
 
     return all_links
@@ -37,11 +46,22 @@ def is_valid(url):
     # Decide whether to crawl this url or not. 
     # If you decide to crawl it, return True; otherwise return False.
     # There are already some conditions that return False.
+    excluded_formats = [
+    '.css', '.js', '.bmp', '.gif', '.jpg', '.jpeg', '.ico', '.png', '.tiff', '.mid', '.mp2',
+    '.mp3', '.mp4', '.wav', '.avi', '.mov', '.mpeg', '.ram', '.m4v', '.mkv', '.ogg', '.ogv', '.pdf',
+    '.ps', '.eps', '.tex', '.ppt', '.pptx', '.doc', '.docx', '.xls', '.xlsx', '.names', '.data',
+    '.dat', '.exe', '.bz2', '.tar', '.msi', '.bin', '.7z', '.psd', '.dmg', '.iso', '.epub', '.dll',
+    '.cnf', '.tgz', '.sha1', '.thmx', '.mso', '.arff', '.rtf', '.jar', '.csv', '.rm', '.smil', '.wmv',
+    '.swf', '.wma', '.zip', '.rar', '.gz', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+                               '.zip', '.rar', '.mp3', '.mp4', '.avi', '.mov', '.wmv',
+                               '.jpg', '.jpeg', '.png', '.gif', '.exe', '.msi', '.iso', '.bin', '.php'
+]
+
     try:
         parsed = urlparse(url)
         if parsed.scheme not in set(["http", "https"]):
             return False
-        if any(parsed.path.lower().endswith(ext) for ext in ['.pdf', '.doc', '.zip']):
+        if any(parsed.path.lower().endswith(ext) for ext in excluded_formats):
             return False
         
         if parsed.netloc in [
