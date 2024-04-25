@@ -58,7 +58,7 @@ def is_valid(url):
 ] #every file formats that should be excluded
 
     try:
-        parsed = urlparse(url)
+        parsed = urlparse(url)._replace(fragment='') # replace fragment to look for unique hyperlinks
         if parsed.scheme not in set(["http", "https"]): #exclude not https
             return False
         if any(parsed.path.lower().endswith(ext) for ext in excluded_formats): #see whether the url ends with excluded format
