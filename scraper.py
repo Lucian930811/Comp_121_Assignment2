@@ -1,8 +1,10 @@
 import re
 from urllib.parse import urlparse, urljoin
 from bs4 import BeautifulSoup
-import tldextract
 from textProcessor import *
+from collections import defaultdict
+
+LARGE_FILE_SIZE = 5 * 1024 * 1024
 
 stopwordSet = {"a", "about", "above", "after", "again", "against", "all", "am", "an", "and",
                "any", "are", "aren't", "as", "at", "be", "because", "been", "before", "being",
@@ -24,12 +26,22 @@ stopwordSet = {"a", "about", "above", "after", "again", "against", "all", "am", 
 
 valid_domains = {".ics.uci.edu", ".cs.uci.edu", ".informatics.uci.edu", ".stat.uci.edu"}
 
+#Global data structure
+all_urls = set()
+all_tokens = defaultdict(int)
+
 def scraper(url, resp):
-    links, word_count = extract_next_links(url, resp)
-    return [link for link in links if is_valid(link)], word_count
+    result = []
+    global all_urls
+    links = extract_next_links(url, resp)
+    for link in links:
+        if is_valid(link):
+            result.append(link)
+            all_urls.add(link)
+    return result
 
 def extract_next_links(url, resp):
-    global last_accessed
+    global all_tokens
     # Implementation required.
     # url: the URL that was used to get the page
     # resp.url: the actual url of the page
@@ -39,73 +51,73 @@ def extract_next_links(url, resp):
     #         resp.raw_response.url: the url, again
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
-    all_links = []
 
-    if resp.status == 200 and resp.raw_response and resp.raw_response.content: #check if the status is 200 and whether there're contents inside raw_response
+    result = []
+    #Check if the status is 200 (OK)
+    if resp.status == 200:
+        # Detect and avoid dead URLs that return a 200 status but no data
+        if len(resp.raw_response.content) == 0:
+            return result
+        # Detect and avoid crawling very large files
+        fileSize = int(resp.raw_response.headers.get('Content-Length', 0))
+        if fileSize > LARGE_FILE_SIZE:
+            return result
 
-        parsedHTML = BeautifulSoup(resp.raw_response.content, 'html.parser') #parse the HTML
-        text_content = parsedHTML.get_text() #Get the text
-        word_count = len(text_content.split()) # See if we need to crawl the website
+        # Parse the HTML, create a list of tokens
+        parsedHTML = BeautifulSoup(resp.raw_response.content, 'html.parser')
+        text_content = parsedHTML.get_text()
+        tokenList = tokenize(text_content)
 
-
-        if word_count > 100: # Avoid useless pages
-
+        # Check High value information content (Definition: Token > 200)
+        if tokenList > 200:
+            # Add token that are not stopword into the global token dictionary
+            for token in tokenList:
+                if token not in stopwordSet:
+                    all_tokens[token] += 1
+            # Get all URL in this page
             for anchor_tag in parsedHTML.find_all('a', href = True):
+                the_link = anchor_tag['href']
+                if the_link is not None:
+                    u = urlparse(the_link)
+                    if not u.scheme:
+                        the_link = urljoin(url, the_link)  # Join absolute link
+                    defragment = urlparse(the_link)._replace(fragment='').geturl()
+                    if defragment not in all_urls:
+                        result.append(defragment)
 
-                the_link = anchor_tag['href'] #grab relative link
+    #Check if the status is 302 (redirect)
+    if resp.status == 302:
+        newUrl = resp.raw_response.headers['Location']
+        #Might need to check redirect link is relative
+        #Remove the fragment part of the URL
+        defragment = urlparse(newUrl)._replace(fragment='').geturl()
+        #Check if it's already in all_urls
+        if defragment not in all_urls:
+            result.append(defragment)
+            return result
 
-                joined_link = urljoin(url, the_link) #Join absolute link
-
-                if 'ics.uci.edu' not in joined_link: #filter out links that are not in ics.uci.edu domain
-                    continue
-
-                all_links.append(joined_link)
-        
-
-    return all_links, word_count
+    #Return empty list if neither
+    return result
 
 def is_valid(url):
     # Decide whether to crawl this url or not. 
     # If you decide to crawl it, return True; otherwise return False.
     # There are already some conditions that return False.
-    excluded_formats = [
-    '.css', '.js', '.bmp', '.gif', '.jpg', '.jpeg', '.ico', '.png', '.tiff', '.mid', '.mp2',
-    '.mp3', '.mp4', '.wav', '.avi', '.mov', '.mpeg', '.ram', '.m4v', '.mkv', '.ogg', '.ogv', '.pdf',
-    '.ps', '.eps', '.tex', '.ppt', '.pptx', '.doc', '.docx', '.xls', '.xlsx', '.names', '.data',
-    '.dat', '.exe', '.bz2', '.tar', '.msi', '.bin', '.7z', '.psd', '.dmg', '.iso', '.epub', '.dll',
-    '.cnf', '.tgz', '.sha1', '.thmx', '.mso', '.arff', '.rtf', '.jar', '.csv', '.rm', '.smil', '.wmv',
-    '.swf', '.wma', '.zip', '.rar', '.gz', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
-                               '.zip', '.rar', '.mp3', '.mp4', '.avi', '.mov', '.wmv',
-                               '.jpg', '.jpeg', '.png', '.gif', '.exe', '.msi', '.iso', '.bin', '.php'
-] #every file formats that should be excluded
-
     try:
-        parsed = urlparse(url)._replace(fragment='') # replace fragment to look for unique hyperlinks
-        if parsed.scheme not in set(["http", "https"]): #exclude not https
+        #parsed = urlparse(url)._replace(fragment='') # replace fragment to look for unique hyperlinks
+        parsed = urlparse(url)
+        # exclude not http/https and check if it's in valid domain
+        if parsed.scheme not in set(["http", "https"]) or all((domain not in parsed.netloc) for domain in valid_domains):
             return False
-        if any(parsed.path.lower().endswith(ext) for ext in excluded_formats): #see whether the url ends with excluded format
-            return False
-        
-        if parsed.netloc in [
-            "www.ics.uci.edu",
-            "www.cs.uci.edu",
-            "www.informatics.uci.edu",
-            "www.stat.uci.edu"
-        ]: #
-            return True
-        
-        return False
-
-
-        # return not re.match(
-        #     r".*\.(css|js|bmp|gif|jpe?g|ico"
-        #     + r"|png|tiff?|mid|mp2|mp3|mp4"
-        #     + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
-        #     + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
-        #     + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
-        #     + r"|epub|dll|cnf|tgz|sha1"
-        #     + r"|thmx|mso|arff|rtf|jar|csv"
-        #     + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower())
+        return not re.match(
+             r".*\.(css|js|bmp|gif|jpe?g|ico"
+             + r"|png|tiff?|mid|mp2|mp3|mp4"
+             + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
+             + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
+             + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
+             + r"|epub|dll|cnf|tgz|sha1"
+             + r"|thmx|mso|arff|rtf|jar|csv"
+             + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower())
 
     except TypeError:
         print ("TypeError for ", parsed)
