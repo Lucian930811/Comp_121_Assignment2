@@ -16,20 +16,19 @@ import sys
 # In the case of no-alphanumeric characters, it executes function join and lower. Which is all O(m),
 # assuming the number of characters in that token is m
 # The time complexity of the function is thus O(n)
-def tokenize(TextFilePath):
+def tokenize(text):
     tokens = []
-    with open(TextFilePath, 'rb') as f:
-        byte = f.read(1)
-        currentWord = []
-        while byte != b'':
-            letter = byte.decode('utf-8')
-            if letter.isalpha() or letter.isdigit():
-                currentWord.append(letter)
-            elif len(currentWord) != 0:
-                word = "".join(currentWord).lower()
-                tokens.append(word)
-                currentWord = []
-            byte = f.read(1)
+    current_word = []
+    for char in text:
+        if char.isalpha() or char.isdigit():
+            current_word.append(char)
+        elif len(current_word) != 0:
+            word = "".join(current_word).lower()
+            tokens.append(word)
+            current_word = []
+    if current_word:
+        word = "".join(current_word).lower()
+        tokens.append(word)
     return tokens
 
 # This function is given a list of tokens, and return a dictionary contains each tokens and the number of occurrence
@@ -59,13 +58,14 @@ def printFrequencies(wordCount):
         print(f'{token[0]} - {token[1]}')
 
 if __name__ == "__main__":
-    if len(sys.argv) == 2:
-        fileName = sys.argv[1]
-        if os.path.exists(fileName):
-            tokenList = tokenize(fileName)
-            tokenDict = computeWordFrequencies(tokenList)
-            printFrequencies(tokenDict)
-        else:
-            print("File not found")
-    else:
-        print("Wrong number of Arguments")
+    pass
+    # if len(sys.argv) == 2:
+    #    fileName = sys.argv[1]
+    #    if os.path.exists(fileName):
+    #        tokenList = tokenize(fileName)
+    #        tokenDict = computeWordFrequencies(tokenList)
+    #        printFrequencies(tokenDict)
+    #    else:
+    #        print("File not found")
+    #else:
+    #    print("Wrong number of Arguments")

@@ -29,6 +29,8 @@ valid_domains = {".ics.uci.edu", ".cs.uci.edu", ".informatics.uci.edu", ".stat.u
 #Global data structure
 all_urls = set()
 all_tokens = defaultdict(int)
+longest_page = ''
+longest_length = 0
 
 def scraper(url, resp):
     result = []
@@ -41,7 +43,7 @@ def scraper(url, resp):
     return result
 
 def extract_next_links(url, resp):
-    global all_tokens
+    global all_tokens, longest_page, longest_length
     # Implementation required.
     # url: the URL that was used to get the page
     # resp.url: the actual url of the page
@@ -68,8 +70,12 @@ def extract_next_links(url, resp):
         text_content = parsedHTML.get_text()
         tokenList = tokenize(text_content)
 
+        if len(tokenList) > longest_length:
+            longest_length = len(tokenList)
+            longest_page = url
+
         # Check High value information content (Definition: Token > 200)
-        if tokenList > 200:
+        if len(tokenList) > 200:
             # Add token that are not stopword into the global token dictionary
             for token in tokenList:
                 if token not in stopwordSet:
@@ -81,6 +87,7 @@ def extract_next_links(url, resp):
                     u = urlparse(the_link)
                     if not u.scheme:
                         the_link = urljoin(url, the_link)  # Join absolute link
+                    #Remove fragment and check if it's in all_urls
                     defragment = urlparse(the_link)._replace(fragment='').geturl()
                     if defragment not in all_urls:
                         result.append(defragment)
@@ -122,3 +129,35 @@ def is_valid(url):
     except TypeError:
         print ("TypeError for ", parsed)
         raise
+
+def printFinalResult():
+    # Question 1
+    try:
+        with open('q1.txt', 'w') as file:
+            for url in all_urls:
+                file.write(url + '\n')
+    except Exception as e:
+        print(f"Error writing to file: {e}")
+
+    # Question 2
+    try:
+        with open('q2.txt', 'w') as file:
+            file.write(f'Longest page: {longest_page}\nLongest number of word: {longest_length}\n')
+    except Exception as e:
+        print(f"Error writing to file: {e}")
+
+    # Question 3
+    try:
+        with open('q3.txt', 'w') as file:
+            sortedTokens = sorted(all_tokens.items(), key=lambda x: (-x[1], x[0]))[:50]
+            for token in sortedTokens:
+                file.write(f'{token[0]} - {token[1]}\n')
+    except Exception as e:
+        print(f"Error writing to file: {e}")
+
+    # Question 4
+    try:
+        with open('q4.txt', 'w') as file:
+            file.write("I'm too lazy.")
+    except Exception as e:
+        print(f"Error writing to file: {e}")
