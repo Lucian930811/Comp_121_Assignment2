@@ -130,12 +130,36 @@ def is_valid(url):
         print ("TypeError for ", parsed)
         raise
 
+def get_unique_urls(urls):
+    unique_urls = []
+    for url in urls:
+        new_base_url = urlparse(url)._replace(fragment='').geturl()
+        if not new_base_url in unique_urls:
+            unique_urls.append(new_base_url)
+    return unique_urls
+
+def count_subdomains(urls):
+    subdomain_counts = defaultdict(int)
+    subdomain_pages = defaultdict(set)
+    for url in urls:
+        parsed_url = urlparse(url)
+        if parsed_url.netloc.endswith('.ics.uci.edu'):
+            subdomain = parsed_url.netloc.split('.')[0]
+            subdomain_counts[subdomain] += 1
+            subdomain_pages[subdomain].add(parsed_url.geturl())
+    subdomain_info = []
+    for subdomain, count in sorted(subdomain_counts.items(), key=lambda x: x[0]):
+        subdomain_info.append(f"http://{subdomain}.ics.uci.edu, {count}")
+    return subdomain_info
+
 def printFinalResult():
     # Question 1
     try:
         with open('q1.txt', 'w') as file:
+            file.write(len(all_urls) + '\n\n')
             for url in all_urls:
                 file.write(url + '\n')
+
     except Exception as e:
         print(f"Error writing to file: {e}")
 
@@ -157,7 +181,9 @@ def printFinalResult():
 
     # Question 4
     try:
+        subdomain_info = count_subdomains(all_urls)
         with open('q4.txt', 'w') as file:
-            file.write("I'm too lazy.")
+            for info in subdomain_info:
+                file.write(info + '\n')
     except Exception as e:
         print(f"Error writing to file: {e}")

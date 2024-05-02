@@ -8,31 +8,6 @@ from utils import get_logger
 import scraper
 import time
 
-
-def update_new_unique_url(new_url, visited_urls):
-    new_base_url = urlparse(new_url)._replace(fragment='').geturl()
-    # print(new_base_url)
-    if not new_base_url in visited_urls:
-        visited_urls.append(new_base_url)
-    return visited_urls
-
-def count_subdomains(urls):
-    subdomain_counts = defaultdict(int)
-    subdomain_pages = defaultdict(set)
-
-    for url in urls:
-        parsed_url = urlparse(url)
-        if parsed_url.netloc.endswith('.ics.uci.edu'):
-            subdomain = parsed_url.netloc.split('.')[0]
-            subdomain_counts[subdomain] += 1
-            subdomain_pages[subdomain].add(parsed_url.geturl())
-
-    subdomain_info = []
-    for subdomain, count in sorted(subdomain_counts.items()):
-        subdomain_info.append(f"http://{subdomain}.ics.uci.edu, {count}")
-
-    return subdomain_info
-
 class Worker(Thread):
     def __init__(self, worker_id, config, frontier):
         self.logger = get_logger(f"Worker-{worker_id}", "Worker")
