@@ -58,7 +58,7 @@ def extract_next_links(url, resp):
     #Check if the status is 200 (OK)
     if resp.status == 200:
         # Detect and avoid dead URLs that return a 200 status but no data
-        if len(resp.raw_response.content) == 0:
+        if resp.raw_response is None or len(resp.raw_response.content) == 0:
             return result
         # Detect and avoid crawling very large files
         fileSize = int(resp.raw_response.headers.get('Content-Length', 0))
