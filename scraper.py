@@ -29,6 +29,7 @@ valid_domains = {".ics.uci.edu", ".cs.uci.edu", ".informatics.uci.edu", ".stat.u
 #Global data structure
 all_urls = set()
 all_tokens = defaultdict(int)
+all_hash_values = []
 longest_page = ''
 longest_length = 0
 
@@ -43,7 +44,7 @@ def scraper(url, resp):
     return result
 
 def extract_next_links(url, resp):
-    global all_tokens, longest_page, longest_length
+    global all_tokens, longest_page, longest_length, all_hash_values
     # Implementation required.
     # url: the URL that was used to get the page
     # resp.url: the actual url of the page
@@ -76,21 +77,29 @@ def extract_next_links(url, resp):
 
         # Check High value information content (Definition: Token > 200)
         if len(tokenList) > 200:
-            # Add token that are not stopword into the global token dictionary
-            for token in tokenList:
-                if token not in stopwordSet:
-                    all_tokens[token] += 1
-            # Get all URL in this page
-            for anchor_tag in parsedHTML.find_all('a', href = True):
-                the_link = anchor_tag['href']
-                if the_link is not None:
-                    u = urlparse(the_link)
-                    if not u.scheme:
-                        the_link = urljoin(url, the_link)  # Join absolute link
-                    #Remove fragment and check if it's in all_urls
-                    defragment = urlparse(the_link)._replace(fragment='').geturl()
-                    if defragment not in all_urls:
-                        result.append(defragment)
+
+            features = computeWordFrequencies(tokenList)
+            # simhash the tokens
+            hash_value = simhash(features)
+            # check if the contents of the url is not similar to any of the visited pages
+            if is_new_hash_value(hash_value, all_hash_values):
+                all_hash_values.append(hash_value)
+
+                # Add token that are not stopword into the global token dictionary
+                for token in tokenList:
+                    if token not in stopwordSet:
+                        all_tokens[token] += 1
+                # Get all URL in this page
+                for anchor_tag in parsedHTML.find_all('a', href = True):
+                    the_link = anchor_tag['href']
+                    if the_link is not None:
+                        u = urlparse(the_link)
+                        if not u.scheme:
+                            the_link = urljoin(url, the_link)  # Join absolute link
+                        #Remove fragment and check if it's in all_urls
+                        defragment = urlparse(the_link)._replace(fragment='').geturl()
+                        if defragment not in all_urls:
+                            result.append(defragment)
 
     #Check if the status is 302 (redirect)
     if resp.status == 302:

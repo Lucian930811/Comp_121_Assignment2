@@ -1,5 +1,6 @@
 import os
 import sys
+import hashlib
 
 # This function will be given a file path, and return a list of tokens
 
@@ -56,6 +57,41 @@ def printFrequencies(wordCount):
     sortedTokens = sorted(wordCount.items(), key=lambda x: (-x[1], x[0]))
     for token in sortedTokens:
         print(f'{token[0]} - {token[1]}')
+
+def simhash(tokens, hash_bits=128):
+    V = [0] * hash_bits
+    for word, count in tokens.items():
+        hash_value = int(hashlib.md5(word.encode('utf-8')).hexdigest(), 16)
+        for i in range(hash_bits):
+            # extracts the value of the i-th bit from the right of hash_value
+            bit = (hash_value >> i) & 1
+            if bit == 1:
+                V[i] += count
+            else:
+                V[i] -= count
+    fingerprint = 0
+    for i in range(hash_bits):
+        if V[i] >= 0:
+            # sets the i-th bit of fingerprint to 1 without affecting the other bits
+            fingerprint |= (1 << i)
+    return fingerprint
+
+def are_similar(hash_a, hash_b, threshold, hash_bits=128):
+    # XOR to find differing bits
+    differing_bits = hash_a ^ hash_b
+
+    # Count the number of same bits
+    same_bits = hash_bits - bin(differing_bits).count('1')
+
+    # Calculate similarity as the fraction of bits that are the same
+    similarity = same_bits / hash_bits
+    return similarity >= threshold
+
+def is_new_hash_value(new_hash_value, hash_values):
+    for value in hash_values:
+        if are_similar(new_hash_value, value, 0.9):
+            return False
+    return True
 
 if __name__ == "__main__":
     pass
