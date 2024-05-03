@@ -75,7 +75,7 @@ def extract_next_links(url, resp):
             longest_length = len(tokenList)
             longest_page = url
 
-        # Check High value information content (Definition: Token > 200)
+        # Check High value information content (Definition: Token > 300)
         if len(tokenList) > 300:
 
             features = computeWordFrequencies(tokenList)
@@ -102,7 +102,7 @@ def extract_next_links(url, resp):
                             result.append(defragment)
 
     #Check if the status is 302 (redirect)
-    if resp.status == 302:
+    if resp.status == 302 and 'Location' in resp.raw_response.headers:
         newUrl = resp.raw_response.headers['Location']
         #Might need to check redirect link is relative
         #Remove the fragment part of the URL
@@ -165,7 +165,7 @@ def printFinalResult():
     # Question 1
     try:
         with open('q1.txt', 'w') as file:
-            file.write(len(all_urls) + '\n\n')
+            file.write(str(len(all_urls)) + '\n\n')
             for url in all_urls:
                 file.write(url + '\n')
 

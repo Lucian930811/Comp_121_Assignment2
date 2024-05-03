@@ -24,9 +24,9 @@ class Worker(Thread):
         super().__init__(daemon=True)
         
     def run(self):
-		counter = 0
+        counter = 0
         while True:
-			counter = counter + 1
+            counter = counter + 1
             tbd_url = self.frontier.get_tbd_url()
             if not tbd_url:
                 scraper.printFinalResult()
@@ -40,9 +40,9 @@ class Worker(Thread):
                 break
             #if tbd_url in self.every_visited_urls:
             #    continue
-			if counter > 5000:
-				scraper.printFinalResult()
-				counter = 0
+            if counter > 5000:
+                scraper.printFinalResult()
+                counter = 0
             resp = download(tbd_url, self.config, self.logger)
             self.logger.info(
                 f"Downloaded {tbd_url}, status <{resp.status}>, "
