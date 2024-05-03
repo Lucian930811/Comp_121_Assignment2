@@ -1,6 +1,7 @@
 import os
 import sys
 import hashlib
+from difflib import SequenceMatcher
 
 # This function will be given a file path, and return a list of tokens
 
@@ -90,6 +91,14 @@ def are_similar(hash_a, hash_b, threshold, hash_bits=128):
 def is_new_hash_value(new_hash_value, hash_values):
     for value in hash_values:
         if are_similar(new_hash_value, value, 0.9):
+            return False
+    return True
+
+def is_new_url(new_url, threshold, visited_urls):
+    for url in visited_urls:
+        similarity_ratio = SequenceMatcher(None, new_url, url).ratio()
+        # print(similarity_ratio)
+        if similarity_ratio >= threshold:
             return False
     return True
 
