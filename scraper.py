@@ -76,7 +76,7 @@ def extract_next_links(url, resp):
             longest_page = url
 
         # Check High value information content (Definition: Token > 200)
-        if len(tokenList) > 200:
+        if len(tokenList) > 300:
 
             features = computeWordFrequencies(tokenList)
             # simhash the tokens
