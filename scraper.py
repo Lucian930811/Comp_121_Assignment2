@@ -98,7 +98,7 @@ def extract_next_links(url, resp):
                             the_link = urljoin(url, the_link)  # Join absolute link
                         #Remove fragment and check if it's in all_urls
                         defragment = urlparse(the_link)._replace(fragment='').geturl()
-                        if defragment not in all_urls and is_new_url(defragment, 0.92, all_urls):
+                        if defragment not in all_urls and is_new_url(defragment, 0.92, result) and is_new_url(defragment, 0.92, all_urls):
                             result.append(defragment)
 
     #Check if the status is 302 (redirect)
