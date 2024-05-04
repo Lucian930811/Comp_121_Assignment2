@@ -40,7 +40,7 @@ class Worker(Thread):
                 break
             #if tbd_url in self.every_visited_urls:
             #    continue
-            if counter > 5000:
+            if counter > 2000:
                 scraper.printFinalResult()
                 counter = 0
             resp = download(tbd_url, self.config, self.logger)
